@@ -4,6 +4,7 @@ use crate::utils::{ArithmeticCommand, Command};
 
 pub struct Writer<W: Write> {
     pub writer: BufWriter<W>,
+    jump_index: u8,
 }
 
 impl Writer<File> {
@@ -11,7 +12,7 @@ impl Writer<File> {
         let out_file = File::create(out_name)?;
         let writer = BufWriter::new(out_file);
 
-        Ok(Writer {writer: writer})
+        Ok(Writer {writer, jump_index: 0})
     }    
 }
 
@@ -35,9 +36,18 @@ impl<W: Write> Writer<W> {
                 self.load_last_stack_value()?;
                 self.writeln("M=-D")?;
             },
-            Command::Arithmetic(ArithmeticCommand::Eq) => self.writeln("EQ")?,
-            Command::Arithmetic(ArithmeticCommand::Gt) => self.writeln("GT")?,
-            Command::Arithmetic(ArithmeticCommand::Lt) => self.writeln("LT")?,
+            Command::Arithmetic(ArithmeticCommand::Eq) => {
+                self.load_last_two_stack_values()?;
+                self.add_compare_instructions("JEQ")?;
+            },
+            Command::Arithmetic(ArithmeticCommand::Gt) => {
+                self.load_last_two_stack_values()?;
+                self.add_compare_instructions("JGT")?;
+            },
+            Command::Arithmetic(ArithmeticCommand::Lt) => {
+                self.load_last_two_stack_values()?;
+                self.add_compare_instructions("JLT")?;
+            },
             Command::Arithmetic(ArithmeticCommand::And) => {
                 self.load_last_two_stack_values()?;
                 self.writeln("M=D&M")?;
@@ -75,6 +85,27 @@ impl<W: Write> Writer<W> {
         self.writeln("D=M")?;
         self.writeln("@SP")?;
         self.writeln("A=M-1")?;
+        Ok(())
+    }
+
+    pub fn add_compare_instructions(&mut self, operation: &str) -> io::Result<()> {
+        self.writeln("D-M")?;
+        self.writeln(&format!("@j{}", self.jump_index))?;
+        self.writeln(&format!("D;{}", operation))?;
+
+        self.writeln("@SP")?;
+        self.writeln("A=M-1")?;
+        self.writeln("M=0")?;
+        self.writeln(&format!("j{}end", self.jump_index))?;
+        self.writeln("0;JMP")?;
+
+        self.writeln(&format!("(j{})", self.jump_index))?;
+        self.writeln("@SP")?;
+        self.writeln("A=M-1")?;
+        self.writeln("M=-1")?;
+
+        self.writeln(&format!("(j{}end)", self.jump_index))?;
+        self.jump_index += 1;
         Ok(())
     }
 }
