@@ -1,17 +1,31 @@
 #[derive(Debug)]
 pub enum Command {
+    Pop(MemorySegment, u32),
+    Push(MemorySegment, u32),
     Arithmetic(ArithmeticCommand),
 }
 
 #[derive(Debug)]
 pub enum ArithmeticCommand {
-    Add,    // x + y
-    Sub,    // x - y
-    Neg,    // -y
-    Eq,     // x == y
-    Gt,     // x > y
-    Lt,     // x < y
-    And,    // x & y
-    Or,     // x | y
-    Not,    // !y
+    Add,
+    Sub,
+    Neg,
+    Eq,
+    Gt,
+    Lt,
+    And,
+    Or,
+    Not,
+}
+
+#[derive(Debug)]
+pub enum MemorySegment {
+    Local,
+    Argument,
+    This,
+    That,
+    Pointer,
+    Temp,
+    Constant,
+    Static,
 }
