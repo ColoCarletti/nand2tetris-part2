@@ -29,3 +29,21 @@ pub enum MemorySegment {
     Constant,
     Static,
 }
+
+impl TryFrom<&str> for MemorySegment {
+    type Error = String;
+
+    fn try_from(memory: &str) -> Result<Self, Self::Error>  {
+        match memory {
+            "local" => Ok(MemorySegment::Local),
+            "argument" => Ok(MemorySegment::Argument),
+            "this" => Ok(MemorySegment::This),
+            "that" => Ok(MemorySegment::That),
+            "pointer" => Ok(MemorySegment::Pointer),
+            "temp" => Ok(MemorySegment::Temp),
+            "constant" => Ok(MemorySegment::Constant),
+            "static" => Ok(MemorySegment::Static),
+            _ => Err(format!("Unknown memory segment: {}", memory)),
+        }
+    }
+}

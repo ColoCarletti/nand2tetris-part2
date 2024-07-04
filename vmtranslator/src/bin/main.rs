@@ -18,9 +18,10 @@ fn main() {
             for element in parser {
                 writer.write(element).unwrap();
             }
+            writer.add_final_loop().unwrap();
         }
         _ => {
-            println!("Usage: vm-to-hack input_file");
+            println!("Usage:g input_file");
         }
     }
 }

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read};
 
-use crate::utils::{ArithmeticCommand, Command};
+use crate::utils::{ArithmeticCommand, Command, MemorySegment};
 
 pub struct Parser<R: Read> {
     pub reader: BufReader<R>
@@ -30,7 +30,7 @@ impl<R: Read> Iterator for Parser<R> {
                     if line.is_empty() {
                         continue;
                     }
-                    let mut split = line.split_whitespace(); 
+                    let mut split = line.split_whitespace();
                     let command = split.next().unwrap();
                     match command {
                         "add" => return Some(Command::Arithmetic(ArithmeticCommand::Add)),
@@ -42,8 +42,21 @@ impl<R: Read> Iterator for Parser<R> {
                         "and" => return Some(Command::Arithmetic(ArithmeticCommand::And)),
                         "or" => return Some(Command::Arithmetic(ArithmeticCommand::Or)),
                         "not" => return Some(Command::Arithmetic(ArithmeticCommand::Not)),
+                        "pop" => return {
+                            let segment_str = split.next().unwrap();
+                            let segment = MemorySegment::try_from(segment_str).unwrap();
+                            let index_str = split.next().unwrap();
+                            let index = index_str.parse::<u32>().unwrap();
+                            Some(Command::Pop(segment, index))
+                        },
+                        "push" => return {
+                            let segment_str = split.next().unwrap();
+                            let segment = MemorySegment::try_from(segment_str).unwrap();
+                            let index_str = split.next().unwrap();
+                            let index = index_str.parse::<u32>().unwrap();
+                            Some(Command::Push(segment, index))
+                        },
                         _ => panic!("Invalid command {:}", command),
-
                     }
                 },
                 Err(_) => return None

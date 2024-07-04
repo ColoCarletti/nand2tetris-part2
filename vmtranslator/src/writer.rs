@@ -17,13 +17,21 @@ impl Writer<File> {
 }
 
 impl<W: Write> Writer<W> {
-    pub fn writeln(&mut self, string: &str) -> io::Result<()> {
+    fn writeln(&mut self, string: &str) -> io::Result<()> {
         self.writer.write(format!("{}\n", string).as_bytes())?;
         Ok(())
     }
 
     pub fn write(&mut self, command: Command) -> io::Result<()> {
         let _ = match command {
+            Command::Pop(_memory, _value) => {
+                self.decrese_sp()?;
+            },
+            Command::Push(_memory, value) => {
+                self.load_value_into_d(value)?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
             Command::Arithmetic(ArithmeticCommand::Add) => {
                 self.load_last_two_stack_values()?;
                 self.writeln("M=D+M")?;
@@ -56,9 +64,35 @@ impl<W: Write> Writer<W> {
                 self.load_last_two_stack_values()?;
                 self.writeln("M=D|M")?;
             },
-            Command::Arithmetic(ArithmeticCommand::Not) => self.writeln("NOT")?,
+            Command::Arithmetic(ArithmeticCommand::Not) => todo!(),
+            _ => println!("{:?}", command),
         };
         self.writeln("")?;
+        Ok(())
+    }
+
+    fn increase_sp(&mut self) -> io::Result<()> {
+        self.writeln("@SP")?;
+        self.writeln("M=M+1")?;
+        Ok(())
+    }
+
+    fn decrese_sp(&mut self) -> io::Result<()> {
+        self.writeln("@SP")?;
+        self.writeln("M=M-1")?;
+        Ok(())
+    }
+
+    fn load_value_into_d(&mut self, value: u32) -> io::Result<()> {
+        self.writeln(&format!("@{}", value))?;
+        self.writeln("D=A")?;
+        Ok(())
+    }
+
+    fn push_d_into_stack(&mut self) -> io::Result<()> {
+        self.writeln("@SP")?;
+        self.writeln("A=M")?;
+        self.writeln("M=D")?;          
         Ok(())
     }
 
@@ -72,14 +106,14 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    pub fn load_last_stack_value(&mut self) -> io::Result<()> {
+    fn load_last_stack_value(&mut self) -> io::Result<()> {
         self.writeln("@SP")?;
         self.writeln("AM=M-1")?;
         self.writeln("D=M")?;
         Ok(())
     }
 
-    pub fn load_last_two_stack_values(&mut self) -> io::Result<()> {
+    fn load_last_two_stack_values(&mut self) -> io::Result<()> {
         self.writeln("@SP")?;
         self.writeln("AM=M-1")?;
         self.writeln("D=M")?;
@@ -88,7 +122,7 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    pub fn add_compare_instructions(&mut self, operation: &str) -> io::Result<()> {
+    fn add_compare_instructions(&mut self, operation: &str) -> io::Result<()> {
         self.writeln("D-M")?;
         self.writeln(&format!("@j{}", self.jump_index))?;
         self.writeln(&format!("D;{}", operation))?;
@@ -106,6 +140,13 @@ impl<W: Write> Writer<W> {
 
         self.writeln(&format!("(j{}end)", self.jump_index))?;
         self.jump_index += 1;
+        Ok(())
+    }
+
+    pub fn add_final_loop(&mut self) -> io::Result<()> {
+        self.writeln("(end)")?;
+        self.writeln("@end")?;
+        self.writeln("0;JMP")?;
         Ok(())
     }
 }
