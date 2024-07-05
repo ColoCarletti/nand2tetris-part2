@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug)]
 pub enum Command {
     Pop(MemorySegment, u32),
@@ -44,6 +46,16 @@ impl TryFrom<&str> for MemorySegment {
             "constant" => Ok(MemorySegment::Constant),
             "static" => Ok(MemorySegment::Static),
             _ => Err(format!("Unknown memory segment: {}", memory)),
+        }
+    }
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Command::Pop(memory, addr) => write!(f, "Pop {:?} {}", memory, addr),
+            Command::Push(memory, addr) => write!(f, "Push {:?} {}", memory, addr),
+            Command::Arithmetic(command) => write!(f, "{:?}", command),
         }
     }
 }

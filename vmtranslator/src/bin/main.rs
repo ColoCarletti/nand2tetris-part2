@@ -16,6 +16,7 @@ fn main() {
 
             writer.initialize_stack_pointer().unwrap();
             for element in parser {
+                writer.write_comment(&format!("{}", element)).unwrap();
                 writer.write(element).unwrap();
             }
             writer.add_final_loop().unwrap();

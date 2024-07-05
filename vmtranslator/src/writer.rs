@@ -22,6 +22,21 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
+    pub fn write_comment(&mut self, string: &str) -> io::Result<()> {
+        self.writeln(&format!("// {}", string))?;
+        Ok(())
+    }
+
+    pub fn initialize_stack_pointer(&mut self) -> io::Result<()> {
+        self.write_comment("Initialize stack pointer")?;
+        self.writeln("@256")?;
+        self.writeln("D=A")?;
+        self.writeln("@SP")?;
+        self.writeln("M=D")?;
+        self.writeln("")?;
+        Ok(())
+    }
+
     pub fn write(&mut self, command: Command) -> io::Result<()> {
         let _ = match command {
             Command::Pop(_memory, _value) => {
@@ -96,16 +111,6 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    pub fn initialize_stack_pointer(&mut self) -> io::Result<()> {
-        self.writeln("// Initialize stack pointer")?;
-        self.writeln("@256")?;
-        self.writeln("D=A")?;
-        self.writeln("@SP")?;
-        self.writeln("M=D")?;
-        self.writeln("")?;
-        Ok(())
-    }
-
     fn load_last_stack_value(&mut self) -> io::Result<()> {
         self.writeln("@SP")?;
         self.writeln("AM=M-1")?;
@@ -144,6 +149,7 @@ impl<W: Write> Writer<W> {
     }
 
     pub fn add_final_loop(&mut self) -> io::Result<()> {
+        self.write_comment("Final loop")?;
         self.writeln("(end)")?;
         self.writeln("@end")?;
         self.writeln("0;JMP")?;
