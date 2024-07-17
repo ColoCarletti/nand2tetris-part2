@@ -1,3 +1,4 @@
+use core::panic;
 use std::{fs::File, io::{self, BufWriter, Write}, path::Path};
 
 use crate::utils::{ArithmeticCommand, Command, MemorySegment};
@@ -90,6 +91,18 @@ impl<W: Write> Writer<W> {
                 self.writeln("M=D")?;
                 self.decrese_sp()?;
             },
+            Command::Pop(MemorySegment::Pointer, selector) => {
+                let symbol: &str;
+                match selector {
+                    0 => symbol = "THIS",
+                    1 => symbol = "THAT",
+                    _ => panic!(),
+                }
+                self.load_last_stack_value()?;
+                self.writeln(&format!("@{}", symbol))?;
+                self.writeln("M=D")?;
+                self.decrese_sp()?;
+            },
             Command::Push(MemorySegment::Constant, value) => {
                 self.load_value_into_d(value)?;
                 self.push_d_into_stack()?;
@@ -126,6 +139,18 @@ impl<W: Write> Writer<W> {
                 self.writeln("D=M")?;
                 self.writeln(&format!("@{}", addr))?;
                 self.writeln("A=A+D")?;
+                self.writeln("D=M")?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::Pointer, selector) => {
+                let symbol: &str;
+                match selector {
+                    0 => symbol = "THIS",
+                    1 => symbol = "THAT",
+                    _ => panic!(),
+                }
+                self.writeln(&format!("@{}", symbol))?;
                 self.writeln("D=M")?;
                 self.push_d_into_stack()?;
                 self.increase_sp()?;
