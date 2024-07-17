@@ -35,8 +35,8 @@ pub enum MemorySegment {
 impl TryFrom<&str> for MemorySegment {
     type Error = String;
 
-    fn try_from(memory: &str) -> Result<Self, Self::Error>  {
-        match memory {
+    fn try_from(segment: &str) -> Result<Self, Self::Error>  {
+        match segment {
             "local" => Ok(MemorySegment::Local),
             "argument" => Ok(MemorySegment::Argument),
             "this" => Ok(MemorySegment::This),
@@ -45,7 +45,7 @@ impl TryFrom<&str> for MemorySegment {
             "temp" => Ok(MemorySegment::Temp),
             "constant" => Ok(MemorySegment::Constant),
             "static" => Ok(MemorySegment::Static),
-            _ => Err(format!("Unknown memory segment: {}", memory)),
+            _ => Err(format!("Unknown segment segment: {}", segment)),
         }
     }
 }
@@ -53,8 +53,8 @@ impl TryFrom<&str> for MemorySegment {
 impl fmt::Display for Command {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Command::Pop(memory, addr) => write!(f, "Pop {:?} {}", memory, addr),
-            Command::Push(memory, addr) => write!(f, "Push {:?} {}", memory, addr),
+            Command::Pop(segment, addr) => write!(f, "Pop {:?} {}", segment, addr),
+            Command::Push(segment, addr) => write!(f, "Push {:?} {}", segment, addr),
             Command::Arithmetic(command) => write!(f, "{:?}", command),
         }
     }

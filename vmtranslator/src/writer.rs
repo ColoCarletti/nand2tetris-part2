@@ -1,19 +1,30 @@
-use std::{fs::File, io::{self, BufWriter, Write}};
+use std::{fs::File, io::{self, BufWriter, Write}, path::Path};
 
-use crate::utils::{ArithmeticCommand, Command};
+use crate::utils::{ArithmeticCommand, Command, MemorySegment};
 
 pub struct Writer<W: Write> {
     pub writer: BufWriter<W>,
+    module: String,
     jump_index: u8,
 }
 
 impl Writer<File> {
-    pub fn new(out_name: &str) -> io::Result<Self>  {
+    pub fn new(name: &str) -> io::Result<Self>  {
+        let out_path = Path::new(name).with_extension("asm");
+        let out_name = out_path.to_str().unwrap();
+
         let out_file = File::create(out_name)?;
         let writer = BufWriter::new(out_file);
+        let module = out_path.file_stem()
+            .and_then(|s| s.to_str())
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| "module".to_string());
 
-        Ok(Writer {writer, jump_index: 0})
-    }    
+        Ok(Writer {
+            writer,
+            module,
+            jump_index: 0})
+    }
 }
 
 impl<W: Write> Writer<W> {
@@ -39,11 +50,83 @@ impl<W: Write> Writer<W> {
 
     pub fn write(&mut self, command: Command) -> io::Result<()> {
         let _ = match command {
-            Command::Pop(_memory, _value) => {
+            Command::Pop(MemorySegment::Constant, _value) => {
+                panic!()
+            },
+            Command::Pop(MemorySegment::Local, addr) => {
+                self.pop_stack_into_segment("LCL", addr)?;
                 self.decrese_sp()?;
             },
-            Command::Push(_memory, value) => {
+            Command::Pop(MemorySegment::Argument, addr) => {
+                self.pop_stack_into_segment("ARG", addr)?;
+                self.decrese_sp()?;
+            },
+            Command::Pop(MemorySegment::This, addr) => {
+                self.pop_stack_into_segment("THIS", addr)?;
+                self.decrese_sp()?;
+            },
+            Command::Pop(MemorySegment::That, addr) => {
+                self.pop_stack_into_segment("THAT", addr)?;
+                self.decrese_sp()?;
+            },
+            Command::Pop(MemorySegment::Static, addr) => {
+                self.writeln("@SP")?;
+                self.writeln("A=M-1")?;
+                self.writeln("D=M")?;
+                self.writeln(&format!("@{}.{}", self.module, addr))?;
+                self.writeln("M=D")?;
+                self.decrese_sp()?;
+            },
+            Command::Pop(MemorySegment::Temp, addr) => {
+                self.writeln("@R5")?;
+                self.writeln("D=M")?;
+                self.writeln(&format!("@{}", addr))?;
+                self.writeln("D=A+D")?;
+                self.writeln("@R13")?;
+                self.writeln("M=D")?;
+                self.load_last_stack_value()?;
+                self.writeln("@R13")?;
+                self.writeln("A=M")?;
+                self.writeln("M=D")?;
+                self.decrese_sp()?;
+            },
+            Command::Push(MemorySegment::Constant, value) => {
                 self.load_value_into_d(value)?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::Local, addr) => {
+                self.load_from_segment_into_d("LCL", addr)?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::Argument, addr) => {
+                self.load_from_segment_into_d("ARG", addr)?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::This, addr) => {
+                self.load_from_segment_into_d("THIS", addr)?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::That, addr) => {
+                self.load_from_segment_into_d("THAT", addr)?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::Static, addr) => {
+                self.writeln(&format!("@{}.{}", self.module, addr))?;
+                self.writeln("D=M")?;
+                self.push_d_into_stack()?;
+                self.increase_sp()?;
+            },
+            Command::Push(MemorySegment::Temp, addr) => {
+                self.writeln("@R5")?;
+                self.writeln("D=M")?;
+                self.writeln(&format!("@{}", addr))?;
+                self.writeln("A=A+D")?;
+                self.writeln("D=M")?;
                 self.push_d_into_stack()?;
                 self.increase_sp()?;
             },
@@ -101,6 +184,30 @@ impl<W: Write> Writer<W> {
     fn load_value_into_d(&mut self, value: u32) -> io::Result<()> {
         self.writeln(&format!("@{}", value))?;
         self.writeln("D=A")?;
+        Ok(())
+    }
+
+    fn load_from_segment_into_d(&mut self, memory_segment: &str, addr: u32) -> io::Result<()> {
+        self.writeln(&format!("@{}", memory_segment))?;
+        self.writeln("D=M")?;
+        self.writeln(&format!("@{}", addr))?;
+        self.writeln("A=A+D")?;
+        self.writeln("D=M")?;
+        Ok(())
+    }
+
+    fn pop_stack_into_segment(&mut self, memory_segment: &str, addr: u32) -> io::Result<()> {
+        self.writeln(&format!("@{}", memory_segment))?;
+        self.writeln("D=M")?;
+        self.writeln(&format!("@{}", addr))?;
+        self.writeln("D=A+D")?;
+        self.writeln("@R13")?;
+        self.writeln("M=D")?;
+        self.writeln("@SP")?;
+        self.writeln("D=M-1")?;
+        self.writeln("@R13")?;
+        self.writeln("A=M")?;
+        self.writeln("M=D")?;
         Ok(())
     }
 

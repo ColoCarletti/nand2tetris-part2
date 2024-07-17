@@ -5,16 +5,15 @@ use std::io::{BufRead, BufReader, Read};
 use crate::utils::{ArithmeticCommand, Command, MemorySegment};
 
 pub struct Parser<R: Read> {
-    pub reader: BufReader<R>
+    pub reader: BufReader<R>,
 }
 
 impl Parser<File> {
     pub fn new(in_name: &str) -> io::Result<Self>  {
         let in_file = File::open(in_name)?;
         let reader = BufReader::new(in_file);
-
-        Ok(Parser {reader: reader})
-    } 
+        Ok(Parser {reader})
+    }
 }
 
 impl<R: Read> Iterator for Parser<R> {
