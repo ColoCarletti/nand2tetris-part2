@@ -80,7 +80,7 @@ impl<W: Write> Writer<W> {
             },
             Command::Pop(MemorySegment::Temp, addr) => {
                 self.writeln("@R5")?;
-                self.writeln("D=M")?;
+                self.writeln("D=A")?;
                 self.writeln(&format!("@{}", addr))?;
                 self.writeln("D=A+D")?;
                 self.writeln("@R13")?;
@@ -89,7 +89,6 @@ impl<W: Write> Writer<W> {
                 self.writeln("@R13")?;
                 self.writeln("A=M")?;
                 self.writeln("M=D")?;
-                self.decrese_sp()?;
             },
             Command::Pop(MemorySegment::Pointer, selector) => {
                 let symbol: &str;
@@ -101,7 +100,6 @@ impl<W: Write> Writer<W> {
                 self.load_last_stack_value()?;
                 self.writeln(&format!("@{}", symbol))?;
                 self.writeln("M=D")?;
-                self.decrese_sp()?;
             },
             Command::Push(MemorySegment::Constant, value) => {
                 self.load_value_into_d(value)?;
@@ -157,15 +155,16 @@ impl<W: Write> Writer<W> {
             },
             Command::Arithmetic(ArithmeticCommand::Add) => {
                 self.load_last_two_stack_values()?;
-                self.writeln("M=D+M")?;
+                self.writeln("M=M+D")?;
             },
             Command::Arithmetic(ArithmeticCommand::Sub) => {
                 self.load_last_two_stack_values()?;
-                self.writeln("M=D-M")?;
+                self.writeln("M=M-D")?;
             },
             Command::Arithmetic(ArithmeticCommand::Neg) => {
                 self.load_last_stack_value()?;
                 self.writeln("M=-D")?;
+                self.increase_sp()?;
             },
             Command::Arithmetic(ArithmeticCommand::Eq) => {
                 self.load_last_two_stack_values()?;
@@ -181,14 +180,17 @@ impl<W: Write> Writer<W> {
             },
             Command::Arithmetic(ArithmeticCommand::And) => {
                 self.load_last_two_stack_values()?;
-                self.writeln("M=D&M")?;
+                self.writeln("M=M&D")?;
             },
             Command::Arithmetic(ArithmeticCommand::Or) => {
                 self.load_last_two_stack_values()?;
-                self.writeln("M=D|M")?;
+                self.writeln("M=M|D")?;
             },
-            Command::Arithmetic(ArithmeticCommand::Not) => todo!(),
-            _ => println!("{:?}", command),
+            Command::Arithmetic(ArithmeticCommand::Not) => {
+                self.load_last_stack_value()?;
+                self.writeln("M=!D")?;
+                self.increase_sp()?;
+            },
         };
         self.writeln("")?;
         Ok(())
@@ -229,7 +231,8 @@ impl<W: Write> Writer<W> {
         self.writeln("@R13")?;
         self.writeln("M=D")?;
         self.writeln("@SP")?;
-        self.writeln("D=M-1")?;
+        self.writeln("A=M-1")?;
+        self.writeln("D=M")?;
         self.writeln("@R13")?;
         self.writeln("A=M")?;
         self.writeln("M=D")?;
@@ -260,14 +263,14 @@ impl<W: Write> Writer<W> {
     }
 
     fn add_compare_instructions(&mut self, operation: &str) -> io::Result<()> {
-        self.writeln("D-M")?;
+        self.writeln("D=M-D")?;
         self.writeln(&format!("@j{}", self.jump_index))?;
         self.writeln(&format!("D;{}", operation))?;
 
         self.writeln("@SP")?;
         self.writeln("A=M-1")?;
         self.writeln("M=0")?;
-        self.writeln(&format!("j{}end", self.jump_index))?;
+        self.writeln(&format!("@j{}end", self.jump_index))?;
         self.writeln("0;JMP")?;
 
         self.writeln(&format!("(j{})", self.jump_index))?;
