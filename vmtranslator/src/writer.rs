@@ -191,6 +191,16 @@ impl<W: Write> Writer<W> {
                 self.writeln("M=!D")?;
                 self.increase_sp()?;
             },
+            Command::Label(label) => self.writeln(&format!("({})", label))?, 
+            Command::GoTo(label) => {
+                self.writeln(&format!("@{}", label))?;
+                self.writeln("0;JMP")?;
+            }, 
+            Command::IfGoTo(label) => {
+                self.load_last_stack_value()?;
+                self.writeln(&format!("@{label}"))?;
+                self.writeln("D;JNE")?;
+            },
         };
         self.writeln("")?;
         Ok(())

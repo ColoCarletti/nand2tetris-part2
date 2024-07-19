@@ -55,9 +55,12 @@ impl<R: Read> Iterator for Parser<R> {
                             let index = index_str.parse::<u32>().unwrap();
                             Some(Command::Push(segment, index))
                         },
+                        "label" => return Some(Command::Label(split.next().unwrap().into())),
+                        "goto" => return Some(Command::GoTo(split.next().unwrap().into())),
+                        "if-goto" => return Some(Command::IfGoTo(split.next().unwrap().into())),
                         _ => panic!("Invalid command {:}", command),
+                        }
                     }
-                },
                 Err(_) => return None
             }
         }

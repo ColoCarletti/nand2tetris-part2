@@ -5,6 +5,9 @@ pub enum Command {
     Pop(MemorySegment, u32),
     Push(MemorySegment, u32),
     Arithmetic(ArithmeticCommand),
+    Label(String),
+    GoTo(String),
+    IfGoTo(String),
 }
 
 #[derive(Debug)]
@@ -56,6 +59,9 @@ impl fmt::Display for Command {
             Command::Pop(segment, addr) => write!(f, "Pop {:?} {}", segment, addr),
             Command::Push(segment, addr) => write!(f, "Push {:?} {}", segment, addr),
             Command::Arithmetic(command) => write!(f, "{:?}", command),
+            Command::Label(label) => write!(f, "Label {}", label),
+            Command::GoTo(label) => write!(f, "GoTo {}", label),
+            Command::IfGoTo(label) => write!(f, "If GoTo {}", label),
         }
     }
 }
