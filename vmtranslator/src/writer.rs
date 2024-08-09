@@ -5,7 +5,6 @@ use crate::utils::{ArithmeticCommand, Command, MemorySegment};
 
 pub struct Writer<W: Write> {
     pub writer: BufWriter<W>,
-    module: String,
     jump_index: u8,
 }
 
@@ -16,14 +15,9 @@ impl Writer<File> {
 
         let out_file = File::create(out_name)?;
         let writer = BufWriter::new(out_file);
-        let module = out_path.file_stem()
-            .and_then(|s| s.to_str())
-            .map(|s| s.to_string())
-            .unwrap_or_else(|| "module".to_string());
 
         Ok(Writer {
             writer,
-            module,
             jump_index: 0})
     }
 }
@@ -49,7 +43,7 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
-    pub fn write(&mut self, command: Command) -> io::Result<()> {
+    pub fn write(&mut self, command: Command, module: &str) -> io::Result<()> {
         let _ = match command {
             Command::Pop(MemorySegment::Constant, _value) => {
                 panic!()
@@ -74,7 +68,7 @@ impl<W: Write> Writer<W> {
                 self.writeln("@SP")?;
                 self.writeln("A=M-1")?;
                 self.writeln("D=M")?;
-                self.writeln(&format!("@{}.{}", self.module, addr))?;
+                self.writeln(&format!("@{}.{}", module, addr))?;
                 self.writeln("M=D")?;
                 self.decrese_sp()?;
             },
@@ -127,7 +121,7 @@ impl<W: Write> Writer<W> {
                 self.increase_sp()?;
             },
             Command::Push(MemorySegment::Static, addr) => {
-                self.writeln(&format!("@{}.{}", self.module, addr))?;
+                self.writeln(&format!("@{}.{}", module, addr))?;
                 self.writeln("D=M")?;
                 self.push_d_into_stack()?;
                 self.increase_sp()?;
@@ -201,6 +195,9 @@ impl<W: Write> Writer<W> {
                 self.writeln(&format!("@{label}"))?;
                 self.writeln("D;JNE")?;
             },
+            Command::Function(..) => todo!(),
+            Command::Call(_) => todo!(),
+            Command::Return => todo!(),
         };
         self.writeln("")?;
         Ok(())

@@ -8,6 +8,9 @@ pub enum Command {
     Label(String),
     GoTo(String),
     IfGoTo(String),
+    Function(String, u32),
+    Call(String),
+    Return,
 }
 
 #[derive(Debug)]
@@ -48,7 +51,7 @@ impl TryFrom<&str> for MemorySegment {
             "temp" => Ok(MemorySegment::Temp),
             "constant" => Ok(MemorySegment::Constant),
             "static" => Ok(MemorySegment::Static),
-            _ => Err(format!("Unknown segment segment: {}", segment)),
+            _ => Err(format!("Unknown segment: {}", segment)),
         }
     }
 }
@@ -62,6 +65,9 @@ impl fmt::Display for Command {
             Command::Label(label) => write!(f, "Label {}", label),
             Command::GoTo(label) => write!(f, "GoTo {}", label),
             Command::IfGoTo(label) => write!(f, "If GoTo {}", label),
+            Command::Function(name, arguments) => write!(f, "Function {} {}", name, arguments),
+            Command::Call(name) => write!(f, "Call {}", name),
+            Command::Return => write!(f, "Return"),
         }
     }
 }

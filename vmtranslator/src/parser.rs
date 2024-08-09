@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io;
 use std::io::{BufRead, BufReader, Read};
+use std::path::PathBuf;
 
 use crate::utils::{ArithmeticCommand, Command, MemorySegment};
 
@@ -9,9 +10,9 @@ pub struct Parser<R: Read> {
 }
 
 impl Parser<File> {
-    pub fn new(in_name: &str) -> io::Result<Self>  {
-        let in_file = File::open(in_name)?;
-        let reader = BufReader::new(in_file);
+    pub fn new(input_path: PathBuf) -> io::Result<Self>  {
+        let input_file = File::open(input_path)?;
+        let reader = BufReader::new(input_file);
         Ok(Parser {reader})
     }
 }
@@ -58,6 +59,12 @@ impl<R: Read> Iterator for Parser<R> {
                         "label" => return Some(Command::Label(split.next().unwrap().into())),
                         "goto" => return Some(Command::GoTo(split.next().unwrap().into())),
                         "if-goto" => return Some(Command::IfGoTo(split.next().unwrap().into())),
+                        "function" => return { 
+                            let function_name = split.next().unwrap();
+                            let arguments_str = split.next().unwrap();
+                            let arguments = arguments_str.parse::<u32>().unwrap();
+                            Some(Command::Function(function_name.into(), arguments))
+                        },
                         _ => panic!("Invalid command {:}", command),
                         }
                     }
