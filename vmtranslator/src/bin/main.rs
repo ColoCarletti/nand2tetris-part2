@@ -31,6 +31,7 @@ fn main() {
     let mut writer = Writer::new(input).unwrap();
     writer.initialize_stack_pointer().unwrap();
     for file in input_files {
+        writer.new_module(file.file_stem().and_then(|s| s.to_str()).unwrap());
         let parser = Parser::new(file).unwrap();
         for element in parser {
             writer.write_comment(&format!("{:?}", element)).unwrap();

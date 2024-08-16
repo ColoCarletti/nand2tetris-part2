@@ -6,6 +6,7 @@ use crate::utils::{ArithmeticCommand, Command, MemorySegment};
 pub struct Writer<W: Write> {
     pub writer: BufWriter<W>,
     jump_index: u8,
+    module_name: String,
 }
 
 impl Writer<File> {
@@ -18,7 +19,12 @@ impl Writer<File> {
 
         Ok(Writer {
             writer,
-            jump_index: 0})
+            jump_index: 0,
+            module_name: "main".to_string(),
+        })
+    }
+    pub fn new_module(&mut self, module_name: &str) {
+        self.module_name = module_name.to_string();
     }
 }
 
@@ -195,7 +201,9 @@ impl<W: Write> Writer<W> {
                 self.writeln(&format!("@{label}"))?;
                 self.writeln("D;JNE")?;
             },
-            Command::Function(..) => todo!(),
+            Command::Function(function_name, _) => {
+                self.writeln(&format!("({}.{})", self.module_name, function_name))?;
+            },
             Command::Call(_) => todo!(),
             Command::Return => todo!(),
         };
